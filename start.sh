@@ -1,13 +1,10 @@
 #!/bin/bash
 
 #####################################################################
-# ECHA MCP 服务 CI/CD 部署启动脚本
+# ECHA MCP 服务部署启动脚本（venv + systemd）
 #
-# 功能：
-#   - 首次部署：构建并启动服务（docker compose up -d --build）
-#   - 已部署：重新构建并重启服务
-#
-# 端口：8005 (SSE)
+# 端口：7082 (SSE)
+# 部署目录：/home/www/echa_mcp
 #####################################################################
 
 set -e
@@ -24,76 +21,72 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+SERVICE_NAME="echa-mcp"
+VENV_DIR="$SCRIPT_DIR/.venv"
+
 log_info "当前工作目录: $SCRIPT_DIR"
 
 #####################################################################
-# 1. 检查必要文件
+# 1. 创建/更新 venv 并安装依赖
 #####################################################################
-if [ ! -f "docker-compose.yml" ]; then
-    log_error "未找到 docker-compose.yml"
-    exit 1
+if [ ! -d "$VENV_DIR" ]; then
+    log_info "创建 Python 虚拟环境..."
+    python3 -m venv "$VENV_DIR"
 fi
 
-#####################################################################
-# 2. 检查基础镜像
-#####################################################################
-log_info "检查基础镜像..."
-if docker image inspect python:3.11-slim > /dev/null 2>&1; then
-    log_info "✓ python:3.11-slim 已存在"
-else
-    log_warn "拉取 python:3.11-slim..."
-    docker pull python:3.11-slim || log_warn "拉取失败，build 时会自动重试"
-fi
+log_info "安装/更新依赖..."
+"$VENV_DIR/bin/pip" install --quiet --upgrade pip
+"$VENV_DIR/bin/pip" install --quiet -e .
 
 #####################################################################
-# 3. 部署
+# 2. 安装 systemd 服务
 #####################################################################
-CONTAINER_EXISTS=$(docker ps -a --filter "name=echa-mcp-server" --format "{{.Names}}" 2>/dev/null || echo "")
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
-if [ -z "$CONTAINER_EXISTS" ]; then
-    log_info "首次部署，构建并启动..."
-else
-    log_info "检测到已有容器，停止旧版本..."
-    docker compose down
-fi
+log_info "配置 systemd 服务..."
+cat > "$SERVICE_FILE" << EOF
+[Unit]
+Description=ECHA MCP Server (SSE on port 7082)
+After=network.target
 
-docker compose up -d --build
+[Service]
+Type=simple
+WorkingDirectory=$SCRIPT_DIR
+ExecStart=$VENV_DIR/bin/python -m echa_mcp.server
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
 
-if [ $? -eq 0 ]; then
-    log_info "✓ 服务启动成功！"
-    sleep 5
+[Install]
+WantedBy=multi-user.target
+EOF
 
-    docker compose ps
+systemctl daemon-reload
 
-    log_info "=========================================="
-    log_info "ECHA MCP Server: http://localhost:8005/sse"
-    log_info "=========================================="
-else
-    log_error "服务启动失败"
-    exit 1
-fi
+#####################################################################
+# 3. 重启服务
+#####################################################################
+log_info "重启 $SERVICE_NAME 服务..."
+systemctl restart "$SERVICE_NAME"
+systemctl enable "$SERVICE_NAME" 2>/dev/null || true
+
+sleep 3
 
 #####################################################################
 # 4. 健康检查
 #####################################################################
-log_info "健康检查..."
-sleep 3
-
-if curl -f -s http://localhost:8005/sse > /dev/null 2>&1; then
-    log_info "✓ MCP Server (8005) 健康"
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    log_info "✓ $SERVICE_NAME 运行中"
 else
-    log_warn "× 服务可能还在启动中..."
+    log_error "× $SERVICE_NAME 启动失败"
+    journalctl -u "$SERVICE_NAME" --no-pager -n 20
+    exit 1
 fi
 
-#####################################################################
-# 5. 清理
-#####################################################################
-docker image prune -f > /dev/null 2>&1 || true
-
 log_info "=========================================="
+log_info "ECHA MCP Server: http://localhost:7082/sse"
+log_info "=========================================="
+log_info "查看日志: journalctl -u $SERVICE_NAME -f"
 log_info "部署完成！"
-log_info "=========================================="
-
-docker compose logs --tail=10
 
 exit 0

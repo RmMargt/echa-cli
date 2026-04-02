@@ -49,7 +49,7 @@ logging.basicConfig(
 
 # ─── Initialize MCP Server ───────────────────────────────────
 
-mcp = FastMCP("echa_mcp", host="0.0.0.0", port=8005)
+mcp = FastMCP("echa_mcp", host="0.0.0.0", port=7082)
 
 
 # ─── Graceful Shutdown ───────────────────────────────────────
