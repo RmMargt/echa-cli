@@ -165,13 +165,16 @@ async def parse_section_7(
             if not html:
                 continue
             try:
-                parsed = _parse_toxicology_document(html, doc["name"], "Summary", section_num)
+                soup = BeautifulSoup(html, "html.parser")
+                del html  # Release raw HTML early
+                parsed = _parse_toxicology_document_from_soup(soup, doc["name"], "Summary", section_num)
                 section_data["summaries"].append(parsed)
 
-                # Extract DN(M)ELs from summaries
-                dnmels = _extract_dnmels(html)
+                # Extract DN(M)ELs from summaries — reuse existing soup
+                dnmels = _extract_dnmels_from_soup(soup)
                 if dnmels:
                     result["dnmels"].extend(dnmels)
+                del soup  # Release soup after use
             except Exception as e:
                 logger.warning("Failed to parse summary %s: %s", doc["doc_id"], e)
 
@@ -187,6 +190,7 @@ async def parse_section_7(
                 parsed = _parse_toxicology_document(html, doc["name"], "Study", section_num)
                 section_data["studies"].append(parsed)
                 study_count += 1
+                del html  # Release raw HTML early
             except Exception as e:
                 logger.warning("Failed to parse study %s: %s", doc["doc_id"], e)
 
@@ -200,6 +204,13 @@ def _parse_toxicology_document(
 ) -> dict:
     """Parse a single toxicology document (Summary or Study)."""
     soup = BeautifulSoup(html, "html.parser")
+    return _parse_toxicology_document_from_soup(soup, name, doc_type, section)
+
+
+def _parse_toxicology_document_from_soup(
+    soup: BeautifulSoup, name: str, doc_type: str, section: str
+) -> dict:
+    """Parse a single toxicology document from a pre-parsed BeautifulSoup object."""
 
     result = {
         "name": name,
@@ -261,6 +272,10 @@ def _parse_toxicology_document(
 def _extract_dnmels(html: str) -> list[dict]:
     """Extract DN(M)EL values from a summary document."""
     soup = BeautifulSoup(html, "html.parser")
+    return _extract_dnmels_from_soup(soup)
+
+
+def _extract_dnmels_from_soup(soup: BeautifulSoup) -> list[dict]:
     dnmels = []
 
     # Look for DNEL/DMEL tables or sections

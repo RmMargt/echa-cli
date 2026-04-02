@@ -32,11 +32,18 @@ class ECHAClient:
 
     async def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
+            # Limit connection pool to avoid resource exhaustion
+            limits = httpx.Limits(
+                max_connections=10,
+                max_keepalive_connections=5,
+                keepalive_expiry=30.0,
+            )
             self._client = httpx.AsyncClient(
                 base_url=BASE_URL,
                 headers={"User-Agent": USER_AGENT},
                 timeout=DEFAULT_TIMEOUT,
                 verify=False,  # Some ECHA endpoints have cert issues
+                limits=limits,
             )
         return self._client
 
@@ -66,16 +73,19 @@ class ECHAClient:
             await self._rate_limit()
             try:
                 response = await client.get(path, params=params)
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 404:
-                    logger.warning("Resource not found: %s", path)
-                    return None
-                else:
-                    logger.warning(
-                        "HTTP %d for %s (attempt %d/%d)",
-                        response.status_code, path, attempt + 1, max_retries,
-                    )
+                try:
+                    if response.status_code == 200:
+                        return response.json()
+                    elif response.status_code == 404:
+                        logger.warning("Resource not found: %s", path)
+                        return None
+                    else:
+                        logger.warning(
+                            "HTTP %d for %s (attempt %d/%d)",
+                            response.status_code, path, attempt + 1, max_retries,
+                        )
+                finally:
+                    await response.aclose()
             except (httpx.TimeoutException, httpx.ConnectError, httpx.RemoteProtocolError) as e:
                 logger.warning(
                     "Request failed for %s (attempt %d/%d): %s",
@@ -99,16 +109,19 @@ class ECHAClient:
             await self._rate_limit()
             try:
                 response = await client.get(path)
-                if response.status_code == 200:
-                    return response.text
-                elif response.status_code == 404:
-                    logger.warning("Page not found: %s", path)
-                    return None
-                else:
-                    logger.warning(
-                        "HTTP %d for %s (attempt %d/%d)",
-                        response.status_code, path, attempt + 1, max_retries,
-                    )
+                try:
+                    if response.status_code == 200:
+                        return response.text
+                    elif response.status_code == 404:
+                        logger.warning("Page not found: %s", path)
+                        return None
+                    else:
+                        logger.warning(
+                            "HTTP %d for %s (attempt %d/%d)",
+                            response.status_code, path, attempt + 1, max_retries,
+                        )
+                finally:
+                    await response.aclose()
             except (httpx.TimeoutException, httpx.ConnectError, httpx.RemoteProtocolError) as e:
                 logger.warning(
                     "Request failed for %s (attempt %d/%d): %s",

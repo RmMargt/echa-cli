@@ -39,6 +39,7 @@ from .tools.toxicology import (
     get_toxicology_full,
 )
 from .data.hcode_mapping import get_hcode_mapping_markdown, get_hcode_mapping_json
+from .clients.echa_client import get_client
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +50,37 @@ logging.basicConfig(
 # ─── Initialize MCP Server ───────────────────────────────────
 
 mcp = FastMCP("echa_mcp", host="0.0.0.0", port=8005)
+
+
+# ─── Graceful Shutdown ───────────────────────────────────────
+
+import atexit
+import signal
+import asyncio
+
+
+async def _shutdown_client():
+    """Close the httpx client to release connection pool resources."""
+    client = get_client()
+    await client.close()
+    logging.getLogger(__name__).info("ECHA client closed gracefully.")
+
+
+def _handle_shutdown(*args):
+    """Sync shutdown handler for atexit/signals."""
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(_shutdown_client())
+        else:
+            loop.run_until_complete(_shutdown_client())
+    except Exception:
+        pass  # Best effort
+
+
+atexit.register(_handle_shutdown)
+signal.signal(signal.SIGTERM, _handle_shutdown)
+signal.signal(signal.SIGINT, _handle_shutdown)
 
 
 # ─── Tool Registration ───────────────────────────────────────

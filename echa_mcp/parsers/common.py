@@ -71,6 +71,9 @@ EMPTY_MARKERS = {
     "not specified", "not available", "no data",
 }
 
+# Pre-computed for hot-path clean_value function
+_EMPTY_MARKERS_LOWER = frozenset(m.lower() for m in EMPTY_MARKERS)
+
 
 def clean_value(text: str) -> str:
     """Clean extracted text value, removing ECHA-specific empty markers."""
@@ -78,7 +81,7 @@ def clean_value(text: str) -> str:
         return ""
     text = text.strip()
     text = re.sub(r"\s+", " ", text)
-    if text.lower() in {m.lower() for m in EMPTY_MARKERS}:
+    if text.lower() in _EMPTY_MARKERS_LOWER:
         return ""
     return text
 
