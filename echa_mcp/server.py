@@ -97,19 +97,19 @@ signal.signal(signal.SIGINT, _handle_shutdown)
         "openWorldHint": True,
     },
 )
-async def tool_get_substance_info(params: SubstanceInfoInput) -> str:
+async def tool_get_substance_info(substance_index: str) -> str:
     """Get basic information for a chemical substance from ECHA CHEM database.
 
     Retrieves CAS number, EC number, chemical names, IUPAC name,
     and molecular formula for a given substance index.
 
     Args:
-        params: SubstanceInfoInput with substance_index (e.g., '100.000.002')
+        substance_index: ECHA substance index (e.g., '100.000.002' for Formaldehyde)
 
     Returns:
         JSON with substance identifiers and names
     """
-    return await get_substance_info(params.substance_index)
+    return await get_substance_info(substance_index)
 
 
 @mcp.tool(
@@ -122,19 +122,20 @@ async def tool_get_substance_info(params: SubstanceInfoInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_list_dossiers(params: DossierListInput) -> str:
+async def tool_list_dossiers(substance_index: str, status: str = "Active") -> str:
     """List REACH registration dossiers for a substance.
 
     Returns all REACH registration dossiers including registration numbers,
     types (Article 10-full, Article 18), and registrant roles.
 
     Args:
-        params: DossierListInput with substance_index and optional status filter
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        status: Registration status filter: 'Active' or 'Not active'
 
     Returns:
         JSON with dossier list including asset IDs and registration details
     """
-    return await list_dossiers(params.substance_index, params.status or "Active")
+    return await list_dossiers(substance_index, status)
 
 
 # Domain 2: CLP Classification (Industry Notification)
@@ -149,7 +150,7 @@ async def tool_list_dossiers(params: DossierListInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_clp_classification(params: CLPClassificationInput) -> str:
+async def tool_get_clp_classification(substance_index: str) -> str:
     """Get CLP notification (industry self-classification) data.
 
     Retrieves all CLP self-classifications notified by industry under the
@@ -159,12 +160,12 @@ async def tool_get_clp_classification(params: CLPClassificationInput) -> str:
     For the official EU harmonised classification, use echa_get_harmonised_classification.
 
     Args:
-        params: CLPClassificationInput with substance_index
+        substance_index: ECHA substance index (e.g., '100.000.002')
 
     Returns:
         JSON with all notification classifications and their details
     """
-    return await get_clp_classification(params.substance_index)
+    return await get_clp_classification(substance_index)
 
 
 # Domain 2b: Harmonised Classification (Annex VI)
@@ -179,9 +180,7 @@ async def tool_get_clp_classification(params: CLPClassificationInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_harmonised_classification(
-    params: HarmonisedClassificationInput,
-) -> str:
+async def tool_get_harmonised_classification(substance_index: str) -> str:
     """Get harmonised classification (Annex VI, CLP Regulation).
 
     Returns the official EU classification adopted by the European Commission.
@@ -189,12 +188,12 @@ async def tool_get_harmonised_classification(
     H-codes, SCL, M-factors, ATE values, and regulatory notes.
 
     Args:
-        params: HarmonisedClassificationInput with substance_index
+        substance_index: ECHA substance index (e.g., '100.000.002')
 
     Returns:
         JSON with harmonised classification data or indication that none exists
     """
-    return await get_harmonised_classification(params.substance_index)
+    return await get_harmonised_classification(substance_index)
 
 
 # Domain 3: REACH Registration Classification (HTML)
@@ -209,19 +208,20 @@ async def tool_get_harmonised_classification(
         "openWorldHint": True,
     },
 )
-async def tool_get_reach_ghs(params: REACHGHSInput) -> str:
+async def tool_get_reach_ghs(substance_index: str, cas_number: str) -> str:
     """Get GHS classification from REACH registration dossier (Section 2.1).
 
     Retrieves the registrant's own GHS hazard classification from their
     REACH dossier. This may differ from CLP notifications.
 
     Args:
-        params: REACHGHSInput with substance_index and cas_number
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        cas_number: CAS number (e.g., '50-00-0')
 
     Returns:
         JSON with GHS classification entries from lead dossiers
     """
-    return await get_reach_ghs(params.substance_index, params.cas_number)
+    return await get_reach_ghs(substance_index, cas_number)
 
 
 @mcp.tool(
@@ -234,19 +234,20 @@ async def tool_get_reach_ghs(params: REACHGHSInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_reach_pbt(params: REACHPBTInput) -> str:
+async def tool_get_reach_pbt(substance_index: str, cas_number: str) -> str:
     """Get PBT assessment from REACH registration dossier (Section 2.3).
 
     Retrieves PBT/vPvB assessment data including PBT status and
     conclusions on Persistence, Bioaccumulation, and Toxicity properties.
 
     Args:
-        params: REACHPBTInput with substance_index and cas_number
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        cas_number: CAS number (e.g., '50-00-0')
 
     Returns:
         JSON with PBT assessment summaries and study conclusions
     """
-    return await get_reach_pbt(params.substance_index, params.cas_number)
+    return await get_reach_pbt(substance_index, cas_number)
 
 
 # Domain 4: Toxicological Information (HTML)
@@ -261,7 +262,7 @@ async def tool_get_reach_pbt(params: REACHPBTInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_toxicology_summary(params: ToxicologySummaryInput) -> str:
+async def tool_get_toxicology_summary(substance_index: str) -> str:
     """Get toxicology summary and DN(M)ELs from REACH dossier (Section 7).
 
     Returns ONLY summary documents and DNEL/DMEL values. This is much
@@ -273,12 +274,12 @@ async def tool_get_toxicology_summary(params: ToxicologySummaryInput) -> str:
     reproductive tox, neurotox/immunotox, human data)
 
     Args:
-        params: ToxicologySummaryInput with substance_index
+        substance_index: ECHA substance index (e.g., '100.000.002')
 
     Returns:
         JSON with DN(M)ELs and summary data per section
     """
-    return await get_toxicology_summary(params.substance_index)
+    return await get_toxicology_summary(substance_index)
 
 
 @mcp.tool(
@@ -291,19 +292,20 @@ async def tool_get_toxicology_summary(params: ToxicologySummaryInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_toxicology_studies(params: ToxicologyStudiesInput) -> str:
+async def tool_get_toxicology_studies(substance_index: str, section: str = None) -> str:
     """Get individual toxicology study records from REACH dossier.
 
     Returns study-level data with species, route, effect levels, and conclusions.
     Can be filtered to a specific subsection (e.g., '7.2' for acute toxicity).
 
     Args:
-        params: ToxicologyStudiesInput with substance_index and optional section filter
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        section: Optional section filter (e.g., '7.2' for acute toxicity)
 
     Returns:
         JSON with study records per section
     """
-    return await get_toxicology_studies(params.substance_index, params.section)
+    return await get_toxicology_studies(substance_index, section)
 
 
 @mcp.tool(
@@ -316,7 +318,7 @@ async def tool_get_toxicology_studies(params: ToxicologyStudiesInput) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_toxicology_full(params: ToxicologyFullInput) -> str:
+async def tool_get_toxicology_full(substance_index: str) -> str:
     """Get COMPLETE toxicology data from REACH dossier (Section 7).
 
     Downloads and parses ALL summaries and studies (up to 400).
@@ -327,12 +329,12 @@ async def tool_get_toxicology_full(params: ToxicologyFullInput) -> str:
     - echa_get_toxicology_studies: studies with optional section filter
 
     Args:
-        params: ToxicologyFullInput with substance_index
+        substance_index: ECHA substance index (e.g., '100.000.002')
 
     Returns:
         Complete JSON with DN(M)ELs, summaries, and studies
     """
-    return await get_toxicology_full(params.substance_index)
+    return await get_toxicology_full(substance_index)
 
 
 # ─── MCP Resource: H-code Mapping ────────────────────────────

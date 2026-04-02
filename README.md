@@ -40,7 +40,7 @@ python -m echa_mcp.server
 echa-mcp
 ```
 
-默认启动 SSE 服务，监听端口用于远程客户端连接。
+服务启动后监听 `http://0.0.0.0:7082`（SSE 端点：`/sse`）。
 
 ### 配置到 MCP 客户端
 
@@ -48,7 +48,7 @@ echa-mcp
 {
   "mcpServers": {
     "echa": {
-      "url": "http://your-server:8000/sse"
+      "url": "http://192.168.89.193:7082/sse"
     }
   }
 }
