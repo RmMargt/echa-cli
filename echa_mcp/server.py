@@ -359,8 +359,8 @@ async def resource_hcode_mapping_json() -> str:
 # ─── Entry Point ──────────────────────────────────────────────
 
 def main():
-    """Run the ECHA MCP server with SSE transport."""
-    mcp.run(transport="sse")
+    """Run the ECHA MCP server with Streamable HTTP transport."""
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":

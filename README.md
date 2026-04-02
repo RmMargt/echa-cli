@@ -32,7 +32,7 @@ cd echa_mcp
 pip install -e .
 ```
 
-### 启动服务（SSE 模式）
+### 启动服务（Streamable HTTP 模式）
 
 ```bash
 python -m echa_mcp.server
@@ -40,7 +40,7 @@ python -m echa_mcp.server
 echa-mcp
 ```
 
-服务启动后监听 `http://0.0.0.0:7082`（SSE 端点：`/sse`）。
+服务启动后监听 `http://0.0.0.0:7082`（MCP 端点：`/mcp`）。
 
 ### 配置到 MCP 客户端
 
@@ -48,23 +48,102 @@ echa-mcp
 {
   "mcpServers": {
     "echa": {
-      "url": "http://192.168.89.193:7082/sse"
+      "url": "http://192.168.89.193:7082/mcp"
     }
   }
 }
 ```
 
-## 📋 示例用法
+## 📋 示例用法与返回结果
 
-### 查询甲醛 (Formaldehyde) 信息
+### 1. 查询物质基本信息 — `echa_get_substance_info`
 
+**输入:**
+```json
+{
+  "substance_index": "100.000.002"
+}
 ```
-substance_index: 100.000.002
+
+**返回:**
+```json
+{
+  "substance_index": "100.000.002",
+  "cas_number": "50-00-0",
+  "ec_number": "200-001-8",
+  "chemical_name": "Formaldehyde",
+  "iupac_name": "formaldehyde",
+  "molecular_formula": "CH2O",
+  "inchi": "InChI=1S/CH2O/c1-2/h1H2",
+  "smiles": "C=O",
+  "index_number": "605-001-00-5",
+  "all_cas_numbers": [
+    "1053659-79-2", "8013-13-6", "1158237-02-5", "50-00-0",
+    "1416946-65-0", "1227476-28-9", "1156543-56-4", "1357848-44-2",
+    "8005-38-7", "8006-07-3", "1609158-91-9", "112068-71-0"
+  ],
+  "all_ec_names": ["Formaldehyde"],
+  "all_iupac_names": ["formaldehyde"]
+}
 ```
 
-工具调用顺序推荐:
+### 2. 查询协调分类 — `echa_get_harmonised_classification`
+
+**输入:**
+```json
+{
+  "substance_index": "100.000.002"
+}
+```
+
+**返回（节选）:**
+```json
+{
+  "substance_index": "100.000.002",
+  "has_harmonised_classification": true,
+  "classification": {
+    "hazard_classes": [
+      {
+        "hazard_class": "Flam. Liq. 2",
+        "h_codes": ["H225"],
+        "signal_word": "Danger"
+      },
+      {
+        "hazard_class": "Acute Tox. 3",
+        "h_codes": ["H311", "H331", "H301"],
+        "signal_word": "Danger"
+      },
+      {
+        "hazard_class": "Skin Corr. 1B",
+        "h_codes": ["H314"],
+        "signal_word": "Danger"
+      },
+      {
+        "hazard_class": "Skin Sens. 1",
+        "h_codes": ["H317"],
+        "signal_word": "Danger"
+      },
+      {
+        "hazard_class": "Carc. 1B",
+        "h_codes": ["H350"],
+        "signal_word": "Danger"
+      },
+      {
+        "hazard_class": "STOT SE 3",
+        "h_codes": ["H335"],
+        "signal_word": "Danger"
+      }
+    ]
+  }
+}
+```
+
+### 3. 推荐工具调用顺序
+
+以查询甲醛 (Formaldehyde, substance_index: `100.000.002`) 为例:
+
 1. `echa_get_substance_info` → 获取 CAS (50-00-0)、EC、名称
-2. `echa_get_harmonised_classification` → 查看协调分类
+2. `echa_get_harmonised_classification` → 查看协调分类（Carc. 1B 等）
 3. `echa_get_clp_classification` → 查看行业通报分类
 4. `echa_get_toxicology_summary` → 快速查看毒理概述和 DNEL 值
 
