@@ -40,7 +40,7 @@ python -m echa_mcp.server
 echa-mcp
 ```
 
-服务启动后监听 `http://0.0.0.0:7082`（MCP 端点：`/mcp`）。
+服务启动后监听 `http://0.0.0.0:7082`（端点：`/mcp`，Streamable HTTP 传输）。
 
 ### 配置到 MCP 客户端
 

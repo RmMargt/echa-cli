@@ -79,20 +79,22 @@ async def get_substance_info(substance_index: str) -> str:
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
-async def list_dossiers(substance_index: str, status: str = "Active") -> str:
+async def list_dossiers(substance_index: str, status: str = "Active", max_results: int = 10) -> str:
     """
     List REACH registration dossiers for a substance.
 
-    Returns all dossiers (registrations) filed under REACH regulation,
-    including registration number, type, role, and dates.
+    Returns dossiers (registrations) filed under REACH regulation,
+    sorted by last updated date (newest first). Defaults to 10 results.
 
     Args:
         substance_index: ECHA substance index (e.g., '100.000.002')
         status: Registration status filter - 'Active' or 'Not active' (default: 'Active')
+        max_results: Maximum number of dossiers to return (default 10)
 
     Returns:
         JSON string with:
-        - total: number of dossiers found
+        - total_available: total count
+        - returned: number returned
         - dossiers: list of dossier info objects
 
     Error: Returns JSON with "error" key if no dossiers found.
@@ -128,8 +130,19 @@ async def list_dossiers(substance_index: str, status: str = "Active") -> str:
             "dossier_url": f"https://chem.echa.europa.eu/html-pages-prod/{asset_id}/index.html",
         })
 
+    total_available = len(dossiers)
+
+    # Sort by last_updated (newest first) and truncate
+    dossiers.sort(key=lambda x: x.get("last_updated", ""), reverse=True)
+    returned = dossiers[:max_results]
+
     return json.dumps(
-        {"total": len(dossiers), "dossiers": dossiers},
+        {
+            "total_available": total_available,
+            "returned": len(returned),
+            "truncated": total_available > len(returned),
+            "dossiers": returned,
+        },
         ensure_ascii=False,
         indent=2,
     )

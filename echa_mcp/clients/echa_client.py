@@ -17,7 +17,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://chem.echa.europa.eu"
-DEFAULT_TIMEOUT = 60.0
+DEFAULT_TIMEOUT = httpx.Timeout(connect=30.0, read=120.0, write=30.0, pool=30.0)
 MAX_RETRIES = 3
 REQUEST_DELAY = 0.3  # seconds between requests
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"

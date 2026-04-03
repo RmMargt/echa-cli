@@ -13,20 +13,17 @@ from ..data.hcode_mapping import HAZARD_TO_HCODE
 logger = logging.getLogger(__name__)
 
 
-async def get_clp_classification(substance_index: str) -> str:
+async def get_clp_classification(substance_index: str, max_results: int = 5) -> str:
     """
     Get CLP notification (industry) classification data for a substance.
 
-    Retrieves all CLP self-classifications notified by industry under the
-    CLP Regulation. Includes hazard categories, H-codes, signal words,
-    pictograms, SCL, M-factors, and labelling.
-
-    This is the 'C&L Inventory' notification data on ECHA, NOT the
-    harmonised classification (Annex VI). For harmonised classification,
-    use echa_get_harmonised_classification.
+    Retrieves CLP self-classifications notified by industry under the
+    CLP Regulation, sorted by notification percentage (most common first).
+    Returns up to max_results entries (default 5) to limit response size.
 
     Args:
         substance_index: ECHA substance index (e.g., '100.000.002')
+        max_results: Maximum number of classification entries to return (default 5)
 
     Returns:
         JSON string with classification data including hazard categories,
@@ -49,6 +46,14 @@ async def get_clp_classification(substance_index: str) -> str:
             {"substance_index": substance_index, "total_classifications": 0, "classifications": []},
             indent=2,
         )
+
+    total_available = len(classifications_raw)
+
+    # Sort by notification percentage (most common first) and truncate
+    classifications_raw.sort(
+        key=lambda x: x.get("substanceNotificationPercentage", 0), reverse=True
+    )
+    classifications_raw = classifications_raw[:max_results]
 
     classifications = []
 
@@ -136,7 +141,9 @@ async def get_clp_classification(substance_index: str) -> str:
 
     result = {
         "substance_index": substance_index,
-        "total_classifications": len(classifications),
+        "total_available": total_available,
+        "returned": len(classifications),
+        "truncated": total_available > len(classifications),
         "classifications": classifications,
     }
 

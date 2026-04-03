@@ -122,20 +122,22 @@ async def tool_get_substance_info(substance_index: str) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_list_dossiers(substance_index: str, status: str = "Active") -> str:
+async def tool_list_dossiers(substance_index: str, status: str = "Active", max_results: int = 10) -> str:
     """List REACH registration dossiers for a substance.
 
     Returns all REACH registration dossiers including registration numbers,
     types (Article 10-full, Article 18), and registrant roles.
+    Sorted by last updated date (newest first). Defaults to 10 results.
 
     Args:
         substance_index: ECHA substance index (e.g., '100.000.002')
         status: Registration status filter: 'Active' or 'Not active'
+        max_results: Maximum number of dossiers to return (default 10)
 
     Returns:
         JSON with dossier list including asset IDs and registration details
     """
-    return await list_dossiers(substance_index, status)
+    return await list_dossiers(substance_index, status, max_results)
 
 
 # Domain 2: CLP Classification (Industry Notification)
@@ -150,22 +152,24 @@ async def tool_list_dossiers(substance_index: str, status: str = "Active") -> st
         "openWorldHint": True,
     },
 )
-async def tool_get_clp_classification(substance_index: str) -> str:
+async def tool_get_clp_classification(substance_index: str, max_results: int = 5) -> str:
     """Get CLP notification (industry self-classification) data.
 
     Retrieves all CLP self-classifications notified by industry under the
     CLP Regulation. Includes hazard categories, H-codes, signal words,
     pictograms, SCL, and M-factors.
+    Sorted by notification percentage (most common first). Defaults to top 5.
 
     For the official EU harmonised classification, use echa_get_harmonised_classification.
 
     Args:
         substance_index: ECHA substance index (e.g., '100.000.002')
+        max_results: Maximum number of classification entries to return (default 5)
 
     Returns:
         JSON with all notification classifications and their details
     """
-    return await get_clp_classification(substance_index)
+    return await get_clp_classification(substance_index, max_results)
 
 
 # Domain 2b: Harmonised Classification (Annex VI)
@@ -292,7 +296,7 @@ async def tool_get_toxicology_summary(substance_index: str) -> str:
         "openWorldHint": True,
     },
 )
-async def tool_get_toxicology_studies(substance_index: str, section: str = None) -> str:
+async def tool_get_toxicology_studies(substance_index: str, section: str = None, max_studies: int = 50) -> str:
     """Get individual toxicology study records from REACH dossier.
 
     Returns study-level data with species, route, effect levels, and conclusions.
@@ -301,11 +305,12 @@ async def tool_get_toxicology_studies(substance_index: str, section: str = None)
     Args:
         substance_index: ECHA substance index (e.g., '100.000.002')
         section: Optional section filter (e.g., '7.2' for acute toxicity)
+        max_studies: Maximum number of studies to parse (default 50)
 
     Returns:
         JSON with study records per section
     """
-    return await get_toxicology_studies(substance_index, section)
+    return await get_toxicology_studies(substance_index, section, max_studies)
 
 
 @mcp.tool(

@@ -90,7 +90,7 @@ async def get_toxicology_summary(substance_index: str) -> str:
 
 
 async def get_toxicology_studies(
-    substance_index: str, section: Optional[str] = None
+    substance_index: str, section: str = None, max_studies: int = 50
 ) -> str:
     """
     Get individual toxicological study records (Section 7).
@@ -102,7 +102,7 @@ async def get_toxicology_studies(
         substance_index: ECHA substance index (e.g., '100.000.002')
         section: Optional subsection filter (e.g., '7.2' for acute toxicity only).
             If not specified, returns studies from ALL Section 7 subsections.
-            Available sections: 7.1-7.10
+        max_studies: Maximum number of studies to parse (default 50)
 
     Returns:
         JSON with:
@@ -121,7 +121,7 @@ async def get_toxicology_studies(
     asset_id = dossier["asset_id"]
 
     data = await parse_section_7(
-        client, asset_id, target_section=section, max_studies=400
+        client, asset_id, target_section=section, max_studies=max_studies
     )
 
     # Only include studies
@@ -183,7 +183,7 @@ async def get_toxicology_full(substance_index: str) -> str:
 
     asset_id = dossier["asset_id"]
 
-    data = await parse_section_7(client, asset_id, max_studies=400)
+    data = await parse_section_7(client, asset_id, max_studies=100)
 
     result = {
         "substance_index": substance_index,
