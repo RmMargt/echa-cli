@@ -4,17 +4,17 @@
 
 ## 🔧 Tools 一览
 
-| Tool | 描述 | 数据源 |
-|------|------|--------|
-| `echa_get_substance_info` | 物质基本信息（CAS、EC、名称） | REST API |
-| `echa_list_dossiers` | REACH 注册卷宗列表 | REST API |
-| `echa_get_clp_classification` | CLP 通报分类（行业自主分类） | REST API |
-| `echa_get_harmonised_classification` | 协调分类（Annex VI 官方分类） | REST API |
-| `echa_get_reach_ghs` | REACH 卷宗 GHS 分类（Section 2.1） | HTML 解析 |
-| `echa_get_reach_pbt` | REACH 卷宗 PBT 评估（Section 2.3） | HTML 解析 |
-| `echa_get_toxicology_summary` | 毒理概述 + DN(M)ELs（快速） | HTML 解析 |
-| `echa_get_toxicology_studies` | 毒理个体研究记录（可按章节过滤） | HTML 解析 |
-| `echa_get_toxicology_full` | 完整毒理数据（慢，最多 400 个 Study） | HTML 解析 |
+| Tool | 描述 | 数据源 | 默认限制 |
+|------|------|--------|----------|
+| `echa_get_substance_info` | 物质基本信息（CAS、EC、名称） | REST API | — |
+| `echa_list_dossiers` | REACH 注册卷宗列表 | REST API | `max_results=10` |
+| `echa_get_clp_classification` | CLP 通报分类（行业自主分类） | REST API | `max_results=5` |
+| `echa_get_harmonised_classification` | 统一分类（Annex VI 官方分类） | REST API | — |
+| `echa_get_reach_ghs` | REACH 卷宗 GHS 分类（Section 2.1） | HTML 解析 | — |
+| `echa_get_reach_pbt` | REACH 卷宗 PBT 评估（Section 2.3） | HTML 解析 | — |
+| `echa_get_toxicology_summary` | 毒理概述 + DN(M)ELs（快速） | HTML 解析 | — |
+| `echa_get_toxicology_studies` | 毒理个体研究记录（可按章节过滤） | HTML 解析 | `max_studies=50` |
+| `echa_get_toxicology_full` | 完整毒理数据（慢） | HTML 解析 | 内部限制 100 |
 
 ## 📚 Resources
 
@@ -87,12 +87,13 @@ echa-mcp
 }
 ```
 
-### 2. 查询协调分类 — `echa_get_harmonised_classification`
+### 2. 查询 CLP 通报分类 — `echa_get_clp_classification`
 
 **输入:**
 ```json
 {
-  "substance_index": "100.000.002"
+  "substance_index": "100.000.002",
+  "max_results": 3
 }
 ```
 
@@ -100,41 +101,17 @@ echa-mcp
 ```json
 {
   "substance_index": "100.000.002",
-  "has_harmonised_classification": true,
-  "classification": {
-    "hazard_classes": [
-      {
-        "hazard_class": "Flam. Liq. 2",
-        "h_codes": ["H225"],
-        "signal_word": "Danger"
-      },
-      {
-        "hazard_class": "Acute Tox. 3",
-        "h_codes": ["H311", "H331", "H301"],
-        "signal_word": "Danger"
-      },
-      {
-        "hazard_class": "Skin Corr. 1B",
-        "h_codes": ["H314"],
-        "signal_word": "Danger"
-      },
-      {
-        "hazard_class": "Skin Sens. 1",
-        "h_codes": ["H317"],
-        "signal_word": "Danger"
-      },
-      {
-        "hazard_class": "Carc. 1B",
-        "h_codes": ["H350"],
-        "signal_word": "Danger"
-      },
-      {
-        "hazard_class": "STOT SE 3",
-        "h_codes": ["H335"],
-        "signal_word": "Danger"
-      }
-    ]
-  }
+  "total_available": 50,
+  "returned": 3,
+  "truncated": true,
+  "classifications": [
+    {
+      "notification_percentage": 34.19,
+      "hazard_categories": ["Carc. 2", "Acute Tox. 3 (Inhalation)", "Skin Corr. 1B", "Skin Sens. 1"],
+      "hcodes": ["H301", "H311", "H314", "H317", "H331", "H351"],
+      "signal_word": "Danger"
+    }
+  ]
 }
 ```
 
@@ -143,8 +120,8 @@ echa-mcp
 以查询甲醛 (Formaldehyde, substance_index: `100.000.002`) 为例:
 
 1. `echa_get_substance_info` → 获取 CAS (50-00-0)、EC、名称
-2. `echa_get_harmonised_classification` → 查看协调分类（Carc. 1B 等）
-3. `echa_get_clp_classification` → 查看行业通报分类
+2. `echa_get_harmonised_classification` → 查看统一分类（Annex VI）
+3. `echa_get_clp_classification` → 查看行业通报分类（默认返回前 5 条）
 4. `echa_get_toxicology_summary` → 快速查看毒理概述和 DNEL 值
 
 ## 🏗 技术架构
@@ -153,14 +130,14 @@ echa-mcp
 echa_mcp/
 ├── server.py              # FastMCP 入口，注册 tools + resources
 ├── clients/
-│   └── echa_client.py     # 异步 HTTP 客户端（httpx）
+│   └── echa_client.py     # 异步 HTTP 客户端（httpx，绕过本地代理）
 ├── tools/                 # MCP tool 实现
 │   ├── substance.py       # 物质信息 + 卷宗列表
 │   ├── clp_classification.py
 │   ├── harmonised_classification.py
 │   ├── reach_classification.py
 │   └── toxicology.py
-├── parsers/               # HTML 解析器
+├── parsers/               # HTML 解析器（兼容 ECHA 新版 UUID 文档链接）
 │   ├── common.py          # 共享解析工具
 │   ├── section2_parser.py # Section 2 GHS/PBT
 │   └── section7_parser.py # Section 7 毒理
@@ -171,6 +148,13 @@ echa_mcp/
 └── data/
     └── hcode_mapping.py   # H-code 映射表
 ```
+
+## ⚠️ 注意事项
+
+- **代理绕过**：httpx 客户端已配置 `proxy=None`，绕过本地代理（ClashX 等）。ECHA 的 HTML dossier 页面（~1MB）通过代理下载时会断连。
+- **超时设置**：连接超时 30s / 读取超时 120s，适配从中国直连 ECHA 服务器的延迟。
+- **结果限制**：CLP 分类默认返回前 5 条、卷宗默认 10 条、研究默认 50 条。可通过 `max_results` / `max_studies` 参数调整。
+- **HTML 解析**：依赖 ECHA dossier HTML 页面结构（2025 年起使用 UUID 格式文档链接），如 ECHA 修改前端结构可能需要更新解析器。
 
 ## 依赖
 
