@@ -44,6 +44,7 @@ class ECHAClient:
                 timeout=DEFAULT_TIMEOUT,
                 verify=False,  # Some ECHA endpoints have cert issues
                 limits=limits,
+                proxy=None,  # Bypass env proxy — large HTML pages drop via proxy
             )
         return self._client
 

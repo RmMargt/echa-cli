@@ -225,13 +225,26 @@ def _scan_section_docs(index_html: str, section: str) -> list[dict]:
     docs = []
 
     # Find all document links
+    # ECHA uses two href formats:
+    #   Old: documents/12345.html
+    #   New: {uuid}_{uuid}  (UUID_UUID, no path prefix, no .html)
     for link in soup.find_all("a", href=True):
         href = str(link["href"])
+        # Try old numeric format
         match = re.search(r"documents/(\d+)\.html", href)
-        if not match:
-            continue
+        if match:
+            doc_id = match.group(1)
+        else:
+            # Try new UUID format: {uuid}_{uuid} (class="das-leaf das-docid-...")
+            uuid_match = re.match(
+                r"^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_"
+                r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+                href,
+            )
+            if not uuid_match:
+                continue
+            doc_id = uuid_match.group(1)
 
-        doc_id = match.group(1)
         name = link.get_text(strip=True)
 
         # Check if this link belongs to the target section
