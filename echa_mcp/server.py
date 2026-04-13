@@ -15,7 +15,13 @@ Also exposes H-code mapping table as an MCP Resource.
 import json
 import logging
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP
+except ImportError:
+    raise ImportError(
+        "MCP SDK is required for the server. "
+        "Install with: pip install echa-cli[mcp]"
+    )
 
 from .models.substance import SubstanceInfoInput, DossierListInput
 from .models.classification import (

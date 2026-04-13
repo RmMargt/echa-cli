@@ -1,6 +1,6 @@
 [project]
 name = "echa-cli"
-version = "1.0.0"
+version = "1.0.1"
 description = "ECHA Chemical Data CLI — query European Chemicals Agency data from the command line or MCP server"
 readme = "README.md"
 license = "MIT"
@@ -23,12 +23,14 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mcp[cli]>=1.0.0",
     "httpx>=0.27.0",
     "beautifulsoup4>=4.12.0",
     "pydantic>=2.0.0",
     "typer>=0.9.0",
 ]
+
+[project.optional-dependencies]
+mcp = ["mcp[cli]>=1.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/RmMargt/echa-cli"
