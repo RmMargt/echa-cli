@@ -25,14 +25,58 @@
 
 ## 🚀 Quick Start
 
-### 安装依赖
+### 安装
 
 ```bash
 cd echa_mcp
 pip install -e .
 ```
 
-### 启动服务（Streamable HTTP 模式）
+安装后提供两个命令：
+- `echa-mcp` — 启动 MCP Server（供 AI 助手使用）
+- `echa-cli` — 命令行工具（供终端直接使用）
+
+### 方式一：CLI 命令行
+
+无需启动服务，直接查询 ECHA 数据：
+
+```bash
+# 查询物质基本信息（CAS、EC、名称、分子式）
+echa-cli substance-info 100.000.002
+
+# 查询统一分类（Annex VI，具有法律约束力）
+echa-cli harmonised 100.000.002
+
+# 查询 CLP 行业通报分类（默认前 5 条）
+echa-cli clp 100.000.002
+echa-cli clp 100.000.002 --max-results 3
+
+# 查询 REACH 注册卷宗列表
+echa-cli list-dossiers 100.000.002
+
+# 查询 REACH GHS 分类（需要 CAS 号）
+echa-cli reach-ghs 100.000.002 50-00-0
+
+# 查询 REACH PBT 评估（需要 CAS 号）
+echa-cli reach-pbt 100.000.002 50-00-0
+
+# 毒理学概述 + DNEL 值（快，10-30s）
+echa-cli tox-summary 100.000.002
+
+# 特定毒理学章节（如急性毒性 7.2）
+echa-cli tox-studies 100.000.002 --section 7.2 --max-studies 10
+
+# 完整毒理学数据（慢，可能需要数分钟）
+echa-cli tox-full 100.000.002
+
+# 查看帮助
+echa-cli --help
+echa-cli substance-info --help
+```
+
+所有命令输出 JSON 到 stdout，可以配合 `jq`、`python -m json.tool` 等工具处理。
+
+### 方式二：MCP Server（供 AI 助手使用）
 
 ```bash
 python -m echa_mcp.server
@@ -42,7 +86,7 @@ echa-mcp
 
 服务启动后监听 `http://0.0.0.0:7082`（端点：`/mcp`，Streamable HTTP 传输）。
 
-### 配置到 MCP 客户端
+配置到 MCP 客户端：
 
 ```json
 {
@@ -162,3 +206,4 @@ echa_mcp/
 - `httpx` >= 0.27.0 (异步 HTTP)
 - `beautifulsoup4` >= 4.12.0 (HTML 解析)
 - `pydantic` >= 2.0.0 (输入验证)
+- `typer` >= 0.9.0 (CLI 框架)
