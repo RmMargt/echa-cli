@@ -1,6 +1,6 @@
 [project]
 name = "echa-cli"
-version = "1.1.0"
+version = "1.1.1"
 description = "ECHA Chemical Data CLI — query European Chemicals Agency data from the command line or MCP server"
 readme = "README.md"
 license = "MIT"

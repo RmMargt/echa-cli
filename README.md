@@ -28,13 +28,19 @@
 ### 安装
 
 ```bash
-cd echa_mcp
+# pip
+pip install echa-cli
+
+# 或 uv（推荐，自动隔离环境）
+uv tool install echa-cli
+
+# 或从源码
 pip install -e .
 ```
 
 安装后提供两个命令：
-- `echa-mcp` — 启动 MCP Server（供 AI 助手使用）
 - `echa-cli` — 命令行工具（供终端直接使用）
+- `echa-mcp` — 启动 MCP Server（供 AI 助手使用）
 
 ### 方式一：CLI 命令行
 

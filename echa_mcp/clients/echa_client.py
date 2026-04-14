@@ -45,6 +45,7 @@ class ECHAClient:
                 verify=False,  # Some ECHA endpoints have cert issues
                 limits=limits,
                 proxy=None,  # Bypass env proxy — large HTML pages drop via proxy
+                trust_env=False,  # Do not read ALL_PROXY/SOCKS proxy env vars
             )
         return self._client
 
