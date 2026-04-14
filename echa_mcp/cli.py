@@ -3,13 +3,15 @@
 ECHA Chemical Data CLI — query European Chemicals Agency data from the command line.
 
 Usage:
+    echa-cli search ethanol
+    echa-cli search 50-00-0
     echa-cli substance-info 100.000.002
     echa-cli harmonised 100.000.002
     echa-cli tox-summary 100.000.002
-    echa-cli tox-studies 100.000.002 --section 7.2 --max-studies 10
 """
 
 import asyncio
+import json
 import sys
 from typing import Optional
 
@@ -39,6 +41,47 @@ def _run_async(coro):
         except Exception:
             pass
         loop.close()
+
+
+# ─── Search (resolve CAS/name → substance_index) ─────────────
+
+
+@app.command()
+def search(
+    query: str = typer.Argument(help="CAS number, chemical name, or EC number"),
+    max_results: int = typer.Option(5, help="Maximum results to return"),
+):
+    """Search ECHA for a substance by CAS number, name, or EC number. Returns substance_index."""
+    async def _search():
+        from .clients.echa_client import get_client
+
+        client = get_client()
+        http_client = await client._get_client()
+
+        url = "/api-substance/v1/substance"
+        params = {"searchText": query, "pageIndex": 1, "pageSize": max_results}
+        resp = await http_client.get(url, params=params)
+        resp.raise_for_status()
+        data = resp.json()
+
+        items = data.get("items", [])
+        if not items:
+            return json.dumps({"error": f"No results for '{query}'"}, indent=2)
+
+        results = []
+        for item in items[:max_results]:
+            idx = item.get("substanceIndex", {})
+            results.append({
+                "substance_index": idx.get("rmlId", ""),
+                "name": idx.get("rmlName", ""),
+                "cas_number": idx.get("rmlCas", ""),
+                "ec_number": idx.get("rmlEc", ""),
+                "molecular_formula": idx.get("rmlMolFormula", ""),
+            })
+
+        return json.dumps({"query": query, "total": len(results), "results": results}, ensure_ascii=False, indent=2)
+
+    _run_async(_search())
 
 
 # ─── Substance Info ───────────────────────────────────────────
