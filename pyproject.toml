@@ -1,6 +1,6 @@
 [project]
 name = "echa-cli"
-version = "1.1.1"
+version = "1.2.0"
 description = "ECHA Chemical Data CLI — query European Chemicals Agency data from the command line or MCP server"
 readme = "README.md"
 license = "MIT"
@@ -8,7 +8,7 @@ requires-python = ">=3.10"
 authors = [
     { name = "MagaritaZhu" },
 ]
-keywords = ["echa", "chemistry", "cli", "classification", "clp", "reach", "toxicology", "ghs"]
+keywords = ["echa", "chemistry", "cli", "classification", "clp", "reach", "toxicology", "ecotoxicology", "physicochemical", "ghs"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",

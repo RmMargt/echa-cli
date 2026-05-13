@@ -7,6 +7,8 @@ Provides tools to query European Chemicals Agency (ECHA) data:
 - CLP notification classification (industry self-classification)
 - Harmonised classification (Annex VI, CLP Regulation)
 - REACH registration classification (dossier Section 2.1 GHS, 2.3 PBT)
+- Physicochemical properties (dossier Section 4)
+- Environmental fate and ecotoxicological information (dossier Sections 5 and 6)
 - Toxicological information (dossier Section 7)
 
 Also exposes H-code mapping table as an MCP Resource.
@@ -35,6 +37,7 @@ from .models.toxicology import (
     ToxicologyStudiesInput,
     ToxicologyFullInput,
 )
+from .models.properties import PhyschemInput, EcotoxicologyInput
 from .tools.substance import get_substance_info, list_dossiers
 from .tools.clp_classification import get_clp_classification
 from .tools.harmonised_classification import get_harmonised_classification
@@ -44,6 +47,7 @@ from .tools.toxicology import (
     get_toxicology_studies,
     get_toxicology_full,
 )
+from .tools.properties import get_physchem_data, get_ecotoxicology_data
 from .data.hcode_mapping import get_hcode_mapping_markdown, get_hcode_mapping_json
 from .clients.echa_client import get_client
 
@@ -346,6 +350,72 @@ async def tool_get_toxicology_full(substance_index: str) -> str:
         Complete JSON with DN(M)ELs, summaries, and studies
     """
     return await get_toxicology_full(substance_index)
+
+
+# Domain 5: Physicochemical and Ecotoxicological Information (HTML)
+
+@mcp.tool(
+    name="echa_get_physchem_data",
+    annotations={
+        "title": "Get Physicochemical Properties (Section 4)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def tool_get_physchem_data(
+    substance_index: str,
+    section: str = None,
+    max_studies: int = 50,
+) -> str:
+    """Get physicochemical property data from REACH dossier Section 4.
+
+    Includes summaries and study records for endpoints such as melting point,
+    boiling point, density, vapour pressure, partition coefficient, water
+    solubility, pH, viscosity, and nanoform physicochemical characterisation.
+
+    Args:
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        section: Optional Section 4 subsection filter (e.g., '4.8')
+        max_studies: Maximum number of study documents to parse (default 50)
+
+    Returns:
+        JSON with Section 4 summaries and study records
+    """
+    return await get_physchem_data(substance_index, section, max_studies)
+
+
+@mcp.tool(
+    name="echa_get_ecotoxicology_data",
+    annotations={
+        "title": "Get Ecotoxicology Data (Sections 5 and 6)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def tool_get_ecotoxicology_data(
+    substance_index: str,
+    section: str = None,
+    max_studies: int = 50,
+) -> str:
+    """Get environmental fate and ecotoxicological data from REACH dossier.
+
+    Covers Section 5 environmental fate/pathways and Section 6 ecotoxicological
+    information, including degradation, bioaccumulation, adsorption/desorption,
+    aquatic toxicity, sediment toxicity, terrestrial toxicity, and PNEC summaries.
+
+    Args:
+        substance_index: ECHA substance index (e.g., '100.000.002')
+        section: Optional Section 5/6 subsection filter (e.g., '5.1.1' or '6.1.1')
+        max_studies: Maximum number of study documents to parse (default 50)
+
+    Returns:
+        JSON with Section 5/6 summaries and study records
+    """
+    return await get_ecotoxicology_data(substance_index, section, max_studies)
 
 
 # ─── MCP Resource: H-code Mapping ────────────────────────────

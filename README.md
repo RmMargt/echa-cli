@@ -1,6 +1,6 @@
 # ECHA Chemical Data MCP Server
 
-欧洲化学品管理局 (ECHA) 数据查询 MCP Server，提供 9 个工具覆盖物质信息、CLP 分类、REACH 注册分类和毒理数据。
+欧洲化学品管理局 (ECHA) 数据查询 MCP Server，提供 11 个工具覆盖物质信息、CLP 分类、REACH 注册分类、理化性质、生态毒理和毒理数据。
 
 ## 🔧 Tools 一览
 
@@ -12,6 +12,8 @@
 | `echa_get_harmonised_classification` | 统一分类（Annex VI 官方分类） | REST API | — |
 | `echa_get_reach_ghs` | REACH 卷宗 GHS 分类（Section 2.1） | HTML 解析 | — |
 | `echa_get_reach_pbt` | REACH 卷宗 PBT 评估（Section 2.3） | HTML 解析 | — |
+| `echa_get_physchem_data` | 理化性质数据（Section 4） | HTML 解析 | `max_studies=50` |
+| `echa_get_ecotoxicology_data` | 环境归趋 + 生态毒理数据（Sections 5/6） | HTML 解析 | `max_studies=50` |
 | `echa_get_toxicology_summary` | 毒理概述 + DN(M)ELs（快速） | HTML 解析 | — |
 | `echa_get_toxicology_studies` | 毒理个体研究记录（可按章节过滤） | HTML 解析 | `max_studies=50` |
 | `echa_get_toxicology_full` | 完整毒理数据（慢） | HTML 解析 | 内部限制 100 |
@@ -65,6 +67,12 @@ echa-cli reach-ghs 100.000.002 50-00-0
 
 # 查询 REACH PBT 评估（需要 CAS 号）
 echa-cli reach-pbt 100.000.002 50-00-0
+
+# 查询理化性质（Section 4，可按子章节过滤）
+echa-cli physchem 100.000.002 --section 4.8 --max-studies 10
+
+# 查询环境归趋和生态毒理（Sections 5/6，可按子章节过滤）
+echa-cli ecotox 100.000.002 --section 6.1.1 --max-studies 10
 
 # 毒理学概述 + DNEL 值（快，10-30s）
 echa-cli tox-summary 100.000.002
@@ -172,7 +180,9 @@ echa-mcp
 1. `echa_get_substance_info` → 获取 CAS (50-00-0)、EC、名称
 2. `echa_get_harmonised_classification` → 查看统一分类（Annex VI）
 3. `echa_get_clp_classification` → 查看行业通报分类（默认返回前 5 条）
-4. `echa_get_toxicology_summary` → 快速查看毒理概述和 DNEL 值
+4. `echa_get_physchem_data` → 查看理化性质
+5. `echa_get_ecotoxicology_data` → 查看环境归趋和生态毒理
+6. `echa_get_toxicology_summary` → 快速查看毒理概述和 DNEL 值
 
 ## 🏗 技术架构
 
@@ -186,14 +196,17 @@ echa_mcp/
 │   ├── clp_classification.py
 │   ├── harmonised_classification.py
 │   ├── reach_classification.py
+│   ├── properties.py
 │   └── toxicology.py
 ├── parsers/               # HTML 解析器（兼容 ECHA 新版 UUID 文档链接）
 │   ├── common.py          # 共享解析工具
 │   ├── section2_parser.py # Section 2 GHS/PBT
+│   ├── dossier_sections.py # Section 4/5/6 理化与生态毒理
 │   └── section7_parser.py # Section 7 毒理
 ├── models/                # Pydantic 输入模型
 │   ├── substance.py
 │   ├── classification.py
+│   ├── properties.py
 │   └── toxicology.py
 └── data/
     └── hcode_mapping.py   # H-code 映射表

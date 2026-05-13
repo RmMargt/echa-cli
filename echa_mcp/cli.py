@@ -7,6 +7,8 @@ Usage:
     echa-cli search 50-00-0
     echa-cli substance-info 100.000.002
     echa-cli harmonised 100.000.002
+    echa-cli physchem 100.000.002 --section 4.8
+    echa-cli ecotox 100.000.002 --section 6.1.1
     echa-cli tox-summary 100.000.002
 """
 
@@ -174,3 +176,30 @@ def tox_full(substance_index: str):
     from .tools.toxicology import get_toxicology_full
 
     _run_async(get_toxicology_full(substance_index))
+
+
+# ─── Physicochemical / Ecotoxicology ─────────────────────────
+
+
+@app.command()
+def physchem(
+    substance_index: str,
+    section: Optional[str] = typer.Option(None, help="Filter by Section 4 subsection (e.g. 4.8)"),
+    max_studies: int = typer.Option(50, help="Maximum studies to parse"),
+):
+    """Get physicochemical property data (Section 4)."""
+    from .tools.properties import get_physchem_data
+
+    _run_async(get_physchem_data(substance_index, section, max_studies))
+
+
+@app.command()
+def ecotox(
+    substance_index: str,
+    section: Optional[str] = typer.Option(None, help="Filter by Section 5/6 subsection (e.g. 6.1.1)"),
+    max_studies: int = typer.Option(50, help="Maximum studies to parse"),
+):
+    """Get environmental fate and ecotoxicological data (Sections 5 and 6)."""
+    from .tools.properties import get_ecotoxicology_data
+
+    _run_async(get_ecotoxicology_data(substance_index, section, max_studies))
