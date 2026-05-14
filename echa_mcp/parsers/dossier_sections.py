@@ -9,10 +9,7 @@ from ..clients.echa_client import ECHAClient
 from .common import clean_value
 from .section7_parser import select_best_dossier
 
-UUID_DOC_RE = re.compile(
-    r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_"
-    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-)
+DOC_ID_RE = re.compile(r"((?:IUC5-)?[A-Za-z0-9-]+_[A-Za-z0-9-]+)")
 
 
 def parse_section_index(index_html: str, sections: Iterable[str]) -> dict[str, dict]:
@@ -115,6 +112,10 @@ def parse_document(html: str, name: str, doc_type: str, section: str) -> dict:
 
 
 def _parse_section4_index(index_html: str) -> dict[str, dict]:
+    collapsed = _parse_collapsed_section_index(index_html, "4", "id_4_Physicalandchemicalproperties")
+    if collapsed:
+        return collapsed
+
     start = index_html.find("4 Physical and chemical properties")
     if start < 0:
         return {}
@@ -190,20 +191,28 @@ def _extract_doc_id(link) -> str:
     if numeric_match:
         return numeric_match.group(1)
 
-    uuid_match = UUID_DOC_RE.search(href)
-    if uuid_match:
-        return uuid_match.group(1)
+    doc_match = DOC_ID_RE.search(href)
+    if doc_match:
+        return doc_match.group(1)
 
     classes = " ".join(link.get("class") or [])
-    class_match = re.search(r"das-docid-([a-f0-9\-]+_[a-f0-9\-]+)", classes)
+    class_match = re.search(r"das-docid-" + DOC_ID_RE.pattern, classes)
     return class_match.group(1) if class_match else ""
 
 
 def _leaf_text(link) -> str:
-    tooltip = link.find(attrs={"data-dastttxt": True})
-    if tooltip:
-        return clean_value(tooltip.get("data-dastttxt", ""))
     content = link.find("div", class_="das-link-content")
+    candidates = (content or link).find_all(attrs={"data-dastttxt": True})
+    tooltip_values = [
+        clean_value(candidate.get("data-dastttxt", ""))
+        for candidate in candidates
+        if candidate.name in {"span", "div", "a"}
+    ]
+    for value in tooltip_values:
+        if _is_dossier_doc_name(value):
+            return value
+    if tooltip_values:
+        return tooltip_values[-1]
     return clean_value((content or link).get_text(" ", strip=True))
 
 

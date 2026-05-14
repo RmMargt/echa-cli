@@ -46,6 +46,42 @@ def test_parse_section_index_groups_physchem_and_ecotox_docs():
     assert sections["6.1.1"]["summaries"][0]["doc_id"] == "333"
 
 
+def test_parse_section_index_groups_collapsed_physchem_iuc5_docs():
+    index_html = """
+    <html><body>
+      <button data-toc-target="#id_4_Physicalandchemicalproperties">
+        4 Physical and chemical properties
+      </button>
+      <div class="collapse" id="id_4_Physicalandchemicalproperties">
+        <button class="das-nav-header" data-toc-target="#id_44_Density">4.4 Density</button>
+        <div class="collapse" id="id_44_Density">
+          <a class="das-leaf das-docid-IUC5-5ebdde83-339b-494f-a295-74dffad94e7f_72e64fd8-8976-41f2-8467-d967eeaad3de"
+             href="IUC5-5ebdde83-339b-494f-a295-74dffad94e7f_72e64fd8-8976-41f2-8467-d967eeaad3de">
+            <div class="das-link-content">
+              <svg data-dastttxt="Inherited by template"></svg>
+              <span data-dastttxt="S-01 | Summary">S-01 | Summary</span>
+            </div>
+          </a>
+          <a class="das-leaf das-docid-IUC5-3e61fd0b-e6a9-4b53-bab7-72d550e86da5_72e64fd8-8976-41f2-8467-d967eeaad3de"
+             href="IUC5-3e61fd0b-e6a9-4b53-bab7-72d550e86da5_72e64fd8-8976-41f2-8467-d967eeaad3de">
+            <div class="das-link-content">
+              <svg data-dastttxt="Inherited by template"></svg>
+              <span data-dastttxt="001 | Key | Experimental study">001 | Key | Experimental study</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </body></html>
+    """
+
+    sections = parse_section_index(index_html, ("4",))
+
+    assert sections["4.4"]["summaries"][0]["name"] == "S-01 | Summary"
+    assert sections["4.4"]["summaries"][0]["doc_id"].startswith("IUC5-5ebdde83")
+    assert sections["4.4"]["studies"][0]["name"] == "001 | Key | Experimental study"
+    assert sections["4.4"]["studies"][0]["doc_id"].startswith("IUC5-3e61fd0b")
+
+
 def test_parse_document_extracts_nested_fields_and_quantity_ranges():
     html = """
     <html><body>
